@@ -2,7 +2,7 @@ import asyncio
 import zlib
 
 from app.audio import run_ffmpeg
-from app.tts.base import TTSProvider, Voice
+from app.tts.base import Model, TTSProvider, Voice
 
 
 class MockProvider(TTSProvider):
@@ -22,6 +22,9 @@ class MockProvider(TTSProvider):
     async def list_voices(self):
         return [Voice("mock-low", "Тест (низкий)", "mock"),
                 Voice("mock-high", "Тест (высокий)", "mock")]
+
+    async def list_models(self):
+        return [Model("mock-v1", "Тестовая модель")]
 
     async def clone_voice(self, name, files, description=""):
         return Voice(f"mock-{zlib.crc32(name.encode())}", name, "cloned")

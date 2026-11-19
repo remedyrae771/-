@@ -1,7 +1,19 @@
+import asyncio
+
 import httpx
 
 from app.config import Settings
-from app.tts.base import TTSError, TTSProvider, Voice
+from app.tts.base import Model, TTSError, TTSProvider, Voice
+
+
+def voice_settings(model_id: str, stability: float, similarity: float, style: float) -> dict:
+    """Каждое семейство моделей принимает свой набор настроек."""
+    if model_id.startswith("eleven_v3"):
+        # v3 понимает только три режима: 0 — творческий, 0.5 — естественный, 1 — стабильный
+        return {"stability": min((0.0, 0.5, 1.0), key=lambda x: abs(x - stability))}
+    if model_id.startswith("eleven_v4"):
+        return {"stability": stability, "similarity_boost": similarity}
+    return {"stability": stability, "similarity_boost": similarity, "style": style}
 
 
 class ElevenLabsProvider(TTSProvider):
@@ -21,28 +33,34 @@ class ElevenLabsProvider(TTSProvider):
     def _raise(r: httpx.Response) -> None:
         if r.is_success:
             return
+        code = ""
         try:
             detail = r.json().get("detail", r.text)
             if isinstance(detail, dict):
+                code = detail.get("code", "")
                 detail = detail.get("message", str(detail))
         except ValueError:
             detail = r.text
+        if code == "paid_plan_required":
+            detail = ("на бесплатном тарифе голоса из библиотеки (Mark Rubins, Nikolay и др.) "
+                      "через API недоступны — нужна подписка Starter или выше. "
+                      "Пока можно выбрать голос из группы «Стандартные».")
+        elif code == "quota_exceeded":
+            detail = "закончились символы на тарифе ElevenLabs."
         raise TTSError(f"ElevenLabs {r.status_code}: {detail}",
                        400 if r.status_code in (400, 401, 402, 422) else 502)
 
-    async def synthesize(self, text, voice_id, *, stability=0.5, similarity=0.75, style=0.0):
+    async def synthesize(self, text, voice_id, *, model_id=None, stability=0.5,
+                         similarity=0.75, style=0.0):
+        model_id = model_id or self.s.elevenlabs_model
         async with self._client() as c:
             r = await c.post(
                 f"/v1/text-to-speech/{voice_id}",
                 params={"output_format": "mp3_44100_128"},
                 json={
                     "text": text,
-                    "model_id": self.s.elevenlabs_model,
-                    "voice_settings": {
-                        "stability": stability,
-                        "similarity_boost": similarity,
-                        "style": style,
-                    },
+                    "model_id": model_id,
+                    "voice_settings": voice_settings(model_id, stability, similarity, style),
                 },
             )
         self._raise(r)
@@ -50,11 +68,33 @@ class ElevenLabsProvider(TTSProvider):
 
     async def list_voices(self):
         async with self._client(30) as c:
-            r = await c.get("/v1/voices")
+            favs, own = await asyncio.gather(
+                asyncio.gather(*(c.get(f"/v1/voices/{v}") for v in self.s.favorite_voice_ids)),
+                c.get("/v1/voices"),
+            )
+        self._raise(own)
+        result, seen = [], set()
+        for r in favs:
+            if r.is_success:  # удалённый из библиотеки голос просто пропускаем
+                v = r.json()
+                result.append(Voice(v["voice_id"], v["name"], "favorite", v.get("preview_url")))
+                seen.add(v["voice_id"])
+        for v in own.json().get("voices", []):
+            if v["voice_id"] not in seen:
+                result.append(Voice(v["voice_id"], v["name"], v.get("category", ""),
+                                    v.get("preview_url")))
+        return result
+
+    async def list_models(self):
+        async with self._client(30) as c:
+            r = await c.get("/v1/models")
         self._raise(r)
         return [
-            Voice(v["voice_id"], v["name"], v.get("category", ""), v.get("preview_url"))
-            for v in r.json().get("voices", [])
+            Model(m["model_id"], m.get("name", m["model_id"]),
+                  m.get("max_characters_request_subscribed_user"))
+            for m in r.json()
+            if m.get("can_do_text_to_speech")
+            and any(lang.get("language_id") == "ru" for lang in m.get("languages", []))
         ]
 
     async def clone_voice(self, name, files, description=""):

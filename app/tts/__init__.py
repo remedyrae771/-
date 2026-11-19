@@ -1,5 +1,5 @@
 from app.config import settings
-from app.tts.base import TTSError, TTSProvider, Voice
+from app.tts.base import Model, TTSError, TTSProvider, Voice
 
 
 def get_provider() -> TTSProvider:
@@ -12,4 +12,4 @@ def get_provider() -> TTSProvider:
     return ElevenLabsProvider(settings)
 
 
-__all__ = ["TTSError", "TTSProvider", "Voice", "get_provider"]
+__all__ = ["Model", "TTSError", "TTSProvider", "Voice", "get_provider"]

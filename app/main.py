@@ -80,6 +80,12 @@ async def voices():
     return [v.__dict__ for v in await get_provider().list_voices()]
 
 
+@app.get("/api/models")
+async def models():
+    return {"default": settings.elevenlabs_model,
+            "models": [m.__dict__ for m in await get_provider().list_models()]}
+
+
 @app.get("/api/usage")
 async def usage():
     return await get_provider().usage()
@@ -92,6 +98,7 @@ class VoiceSettings(BaseModel):
 
 
 class TTSRequest(VoiceSettings):
+    model_id: str | None = None
     text: str = Field(min_length=1)
     voice_id: str | None = None
     format: Literal["mp3", "wav"] = "mp3"
@@ -102,7 +109,7 @@ async def tts(req: TTSRequest):
     """Озвучить один текст и сразу вернуть аудио."""
     if len(req.text) > settings.max_text_chars:
         raise HTTPException(413, f"Текст длиннее {settings.max_text_chars} символов")
-    opts = req.model_dump(include={"stability", "similarity", "style"})
+    opts = req.model_dump(include={"model_id", "stability", "similarity", "style"})
     mp3 = await cached_synthesize(get_provider(), req.text.strip(), _voice(req.voice_id), **opts)
     if req.format == "wav":
         data = await asyncio.to_thread(audio.encode, await asyncio.to_thread(audio.decode_pcm, mp3), "wav")
@@ -116,12 +123,14 @@ async def dub_srt(
     subtitles: UploadFile = File(..., description="Файл .srt"),
     voice_id: str | None = Form(None),
     format: Literal["mp3", "wav"] = Form("mp3"),
+    model_id: str | None = Form(None),
     stability: float = Form(0.5), similarity: float = Form(0.75), style: float = Form(0.0),
 ):
     """Собрать звуковую дорожку по субтитрам — каждая фраза в свой тайминг."""
     cues = await _read_srt(subtitles)
     res = await dub_cues(get_provider(), cues, _voice(voice_id),
-                         stability=stability, similarity=similarity, style=style)
+                         model_id=model_id, stability=stability, similarity=similarity,
+                         style=style)
     data = await asyncio.to_thread(audio.encode, res.pcm, format)
     name = _save_output(data, format)
     return {"file": name, "url": f"/api/files/{name}", "duration": round(res.duration, 2),
@@ -136,6 +145,7 @@ async def dub_video(
     voice_id: str | None = Form(None),
     mode: Literal["replace", "mix"] = Form("replace"),
     original_volume: float = Form(0.15, ge=0, le=1),
+    model_id: str | None = Form(None),
     stability: float = Form(0.5), similarity: float = Form(0.75), style: float = Form(0.0),
 ):
     """Озвучить видео по субтитрам и вернуть готовый mp4."""
@@ -150,7 +160,8 @@ async def dub_video(
             raise HTTPException(422, "В загруженном файле нет видеодорожки")
 
         res = await dub_cues(get_provider(), cues, voice, total=info["duration"],
-                             stability=stability, similarity=similarity, style=style)
+                             model_id=model_id, stability=stability, similarity=similarity,
+                             style=style)
         wav = Path(tmp) / "dub.wav"
         wav.write_bytes(await asyncio.to_thread(audio.encode, res.pcm, "wav"))
 

@@ -34,6 +34,10 @@
   .out { margin-top:16px; } .out audio, .out video { width:100%; margin-top:8px; }
   .warn { color:var(--warn); font-size:13px; } .err { color:var(--err); }
   .meta { color:var(--muted); font-size:13px; }
+  .tags { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:8px; }
+  .tags button { font:12px ui-monospace, monospace; color:var(--text); background:var(--bg);
+                 border:1px solid var(--line); border-radius:6px; padding:3px 7px; cursor:pointer; }
+  .tags button:hover { border-color:var(--accent); }
   #usage { font-size:13px; color:var(--muted); margin-bottom:12px; }
 </style>
 </head>
@@ -44,16 +48,19 @@
   <div id="usage"></div>
 
   <div class="card">
-    <label>Голос</label>
-    <select id="voice"></select>
+    <div class="row">
+      <div><label>Голос</label><select id="voice"></select></div>
+      <div><label>Модель</label><select id="model"></select></div>
+    </div>
     <div class="row">
       <div><label>Стабильность <span id="v-stab">0.5</span></label>
         <input id="stability" type="range" min="0" max="1" step="0.05" value="0.5"></div>
       <div><label>Похожесть <span id="v-sim">0.75</span></label>
         <input id="similarity" type="range" min="0" max="1" step="0.05" value="0.75"></div>
-      <div><label>Выразительность <span id="v-sty">0</span></label>
+      <div id="style-box"><label>Выразительность <span id="v-sty">0</span></label>
         <input id="style" type="range" min="0" max="1" step="0.05" value="0"></div>
     </div>
+    <p class="meta" id="model-hint"></p>
   </div>
   <br>
   <nav>
@@ -65,7 +72,8 @@
 
   <section class="card tab on" id="tab-text">
     <label>Текст</label>
-    <textarea id="text" placeholder="Введите текст для озвучки"></textarea>
+    <div class="tags" id="tags"></div>
+    <textarea id="text" placeholder="[curious] Представь, что… [pause] Введите текст для озвучки"></textarea>
     <div class="meta"><span id="count">0</span> символов</div>
     <button class="go" id="go-text">Озвучить</button>
     <div class="out" id="out-text"></div>
@@ -120,7 +128,29 @@ document.querySelectorAll("nav button").forEach((b) => b.onclick = () => {
   $(i).oninput = () => $(o).textContent = $(i).value);
 $("text").oninput = () => $("count").textContent = $("text").value.length;
 
-const opts = () => ({ voice_id: $("voice").value, stability: +$("stability").value,
+const TAGS = ["[curious]", "[serious]", "[whispers]", "[quietly]", "[pause]", "[long pause]",
+  "[excited]", "[happy]", "[sad]", "[tense]", "[determined]", "[amazed]", "[playful]",
+  "[ominous whisper]", "[sighs]", "[laughs]", "[inhales deeply]"];
+$("tags").innerHTML = TAGS.map((t) => `<button type="button">${t}</button>`).join("");
+$("tags").onclick = (e) => {
+  if (e.target.tagName !== "BUTTON") return;
+  const ta = $("text"), pos = ta.selectionStart, tag = e.target.textContent + " ";
+  ta.value = ta.value.slice(0, pos) + tag + ta.value.slice(ta.selectionEnd);
+  ta.focus(); ta.selectionStart = ta.selectionEnd = pos + tag.length; ta.oninput();
+};
+
+function updateModelHint() {
+  const m = $("model").value, tagged = /^eleven_v[34]/.test(m);
+  $("tags").style.display = tagged ? "" : "none";
+  $("style-box").style.display = /^eleven_v[34]/.test(m) ? "none" : "";
+  $("model-hint").textContent = m.startsWith("eleven_v3")
+    ? "v3 понимает теги эмоций. Стабильность округляется до 0 / 0.5 / 1."
+    : tagged ? "Модель понимает теги эмоций — вставляйте их кнопками над текстом."
+    : "Эта модель не понимает теги [whispers], [pause] и т.п. — они могут прозвучать вслух.";
+}
+$("model").onchange = updateModelHint;
+
+const opts = () => ({ voice_id: $("voice").value, model_id: $("model").value, stability: +$("stability").value,
                       similarity: +$("similarity").value, style: +$("style").value });
 
 async function errText(r) {
@@ -187,8 +217,13 @@ async function loadVoices(select) {
   const r = await fetch("/api/voices");
   if (!r.ok) { $("voice").innerHTML = `<option value="">Ошибка: ${esc(await errText(r))}</option>`; return; }
   const list = await r.json();
-  $("voice").innerHTML = list.map((v) =>
-    `<option value="${esc(v.voice_id)}">${esc(v.name)}${v.category === "cloned" ? " ★" : ""}</option>`).join("");
+  const opt = (v) => `<option value="${esc(v.voice_id)}">${esc(v.name)}</option>`;
+  const groups = [["favorite", "Избранные"], ["cloned", "Мои голоса"]];
+  const rest = list.filter((v) => !groups.some(([c]) => c === v.category));
+  $("voice").innerHTML = groups.map(([c, title]) => {
+    const g = list.filter((v) => v.category === c);
+    return g.length ? `<optgroup label="${title}">${g.map(opt).join("")}</optgroup>` : "";
+  }).join("") + (rest.length ? `<optgroup label="Стандартные">${rest.map(opt).join("")}</optgroup>` : "");
   if (select) $("voice").value = select;
 }
 
@@ -200,7 +235,16 @@ async function loadUsage() {
       : `Тариф: ${u.tier}`;
   } catch {}
 }
-loadVoices(); loadUsage();
+async function loadModels() {
+  try {
+    const r = await (await fetch("/api/models")).json();
+    $("model").innerHTML = r.models.map((m) =>
+      `<option value="${esc(m.model_id)}">${esc(m.name)}</option>`).join("");
+    if (r.models.some((m) => m.model_id === r.default)) $("model").value = r.default;
+  } catch {}
+  updateModelHint();
+}
+loadVoices(); loadModels(); loadUsage();
 </script>
 </body>
 </html>

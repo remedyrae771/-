@@ -73,3 +73,23 @@ def test_dub_video(tmp_path):
 
 def test_file_path_traversal():
     assert client.get("/api/files/..%2F..%2Fetc%2Fpasswd").status_code == 404
+
+
+def test_models():
+    j = client.get("/api/models").json()
+    assert j["models"][0]["model_id"] == "mock-v1"
+
+
+def test_voice_settings_per_model():
+    from app.tts.elevenlabs import voice_settings
+    assert voice_settings("eleven_v3", 0.7, 0.75, 0.3) == {"stability": 0.5}
+    assert voice_settings("eleven_v4", 0.4, 0.8, 0.3) == {"stability": 0.4, "similarity_boost": 0.8}
+    assert "style" in voice_settings("eleven_multilingual_v2", 0.5, 0.75, 0.2)
+
+
+def test_cache_separates_models():
+    a = client.post("/api/tts", json={"text": "Кэш", "model_id": "m1"})
+    b = client.post("/api/tts", json={"text": "Кэш", "model_id": "m2"})
+    assert a.status_code == b.status_code == 200
+    from app.config import settings
+    assert len(list(settings.cache_dir.glob("*.mp3"))) == 2

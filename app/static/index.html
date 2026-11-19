@@ -1,0 +1,206 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Озвучка для видео</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1b1f24; --muted:#6a737d; --line:#dde1e6;
+          --accent:#4f46e5; --warn:#b45309; --err:#b91c1c; }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#111317; --card:#1a1d23; --text:#e6e8eb; --muted:#9aa3ad; --line:#2c313a;
+            --accent:#818cf8; --warn:#f59e0b; --err:#f87171; } }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font:15px/1.5 system-ui, -apple-system, Segoe UI, Roboto, sans-serif; }
+  main { max-width: 760px; margin: 0 auto; padding: 24px 16px 64px; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 20px; font-size: 13px; }
+  nav { display:flex; gap:4px; border-bottom:1px solid var(--line); margin-bottom:16px; flex-wrap:wrap; }
+  nav button { background:none; border:0; padding:10px 14px; color:var(--muted); cursor:pointer;
+               font:inherit; border-bottom:2px solid transparent; }
+  nav button.on { color:var(--text); border-color:var(--accent); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px; }
+  .tab { display:none; } .tab.on { display:block; }
+  label { display:block; font-size:13px; color:var(--muted); margin:12px 0 4px; }
+  textarea, select, input[type=text], input[type=file] { width:100%; font:inherit; color:var(--text);
+    background:var(--bg); border:1px solid var(--line); border-radius:8px; padding:8px 10px; }
+  textarea { min-height:140px; resize:vertical; }
+  .row { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; }
+  input[type=range] { width:100%; }
+  .go { margin-top:16px; background:var(--accent); color:#fff; border:0; border-radius:8px;
+        padding:10px 18px; font:inherit; font-weight:600; cursor:pointer; }
+  .go:disabled { opacity:.5; cursor:wait; }
+  .out { margin-top:16px; } .out audio, .out video { width:100%; margin-top:8px; }
+  .warn { color:var(--warn); font-size:13px; } .err { color:var(--err); }
+  .meta { color:var(--muted); font-size:13px; }
+  #usage { font-size:13px; color:var(--muted); margin-bottom:12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Озвучка для видео</h1>
+  <p class="sub">Текст → речь, озвучка по субтитрам с точными таймингами, наложение на видео.</p>
+  <div id="usage"></div>
+
+  <div class="card">
+    <label>Голос</label>
+    <select id="voice"></select>
+    <div class="row">
+      <div><label>Стабильность <span id="v-stab">0.5</span></label>
+        <input id="stability" type="range" min="0" max="1" step="0.05" value="0.5"></div>
+      <div><label>Похожесть <span id="v-sim">0.75</span></label>
+        <input id="similarity" type="range" min="0" max="1" step="0.05" value="0.75"></div>
+      <div><label>Выразительность <span id="v-sty">0</span></label>
+        <input id="style" type="range" min="0" max="1" step="0.05" value="0"></div>
+    </div>
+  </div>
+  <br>
+  <nav>
+    <button data-tab="text" class="on">Текст</button>
+    <button data-tab="srt">Субтитры → аудио</button>
+    <button data-tab="video">Видео</button>
+    <button data-tab="clone">Свой голос</button>
+  </nav>
+
+  <section class="card tab on" id="tab-text">
+    <label>Текст</label>
+    <textarea id="text" placeholder="Введите текст для озвучки"></textarea>
+    <div class="meta"><span id="count">0</span> символов</div>
+    <button class="go" id="go-text">Озвучить</button>
+    <div class="out" id="out-text"></div>
+  </section>
+
+  <section class="card tab" id="tab-srt">
+    <label>Файл субтитров (.srt)</label>
+    <input type="file" id="srt-file" accept=".srt">
+    <label>Формат</label>
+    <select id="srt-format"><option>mp3</option><option>wav</option></select>
+    <button class="go" id="go-srt">Собрать дорожку</button>
+    <div class="out" id="out-srt"></div>
+  </section>
+
+  <section class="card tab" id="tab-video">
+    <label>Видео</label>
+    <input type="file" id="vid-file" accept="video/*">
+    <label>Субтитры (.srt)</label>
+    <input type="file" id="vid-srt" accept=".srt">
+    <div class="row">
+      <div><label>Оригинальный звук</label>
+        <select id="vid-mode"><option value="replace">Заменить</option>
+          <option value="mix">Оставить фоном</option></select></div>
+      <div><label>Громкость фона <span id="v-bg">0.15</span></label>
+        <input id="vid-bg" type="range" min="0" max="1" step="0.05" value="0.15"></div>
+    </div>
+    <button class="go" id="go-video">Озвучить видео</button>
+    <div class="out" id="out-video"></div>
+  </section>
+
+  <section class="card tab" id="tab-clone">
+    <p class="meta">Загрузите 1–3 минуты чистой записи голоса (без музыки и шума).
+      Клонировать можно только свой голос или голос человека, который дал согласие.
+      У ElevenLabs нужна подписка Starter или выше.</p>
+    <label>Название голоса</label>
+    <input type="text" id="clone-name" placeholder="Например: Мой голос">
+    <label>Образцы (mp3/wav, можно несколько)</label>
+    <input type="file" id="clone-files" accept="audio/*" multiple>
+    <button class="go" id="go-clone">Создать голос</button>
+    <div class="out" id="out-clone"></div>
+  </section>
+</main>
+<script>
+const $ = (id) => document.getElementById(id);
+const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+document.querySelectorAll("nav button").forEach((b) => b.onclick = () => {
+  document.querySelectorAll("nav button, .tab").forEach((e) => e.classList.remove("on"));
+  b.classList.add("on"); $("tab-" + b.dataset.tab).classList.add("on");
+});
+[["stability","v-stab"],["similarity","v-sim"],["style","v-sty"],["vid-bg","v-bg"]].forEach(([i,o]) =>
+  $(i).oninput = () => $(o).textContent = $(i).value);
+$("text").oninput = () => $("count").textContent = $("text").value.length;
+
+const opts = () => ({ voice_id: $("voice").value, stability: +$("stability").value,
+                      similarity: +$("similarity").value, style: +$("style").value });
+
+async function errText(r) {
+  try { const j = await r.json(); return typeof j.detail === "string" ? j.detail : JSON.stringify(j.detail); }
+  catch { return r.statusText; }
+}
+
+async function run(btn, out, fn) {
+  btn.disabled = true; out.innerHTML = '<p class="meta">Обработка…</p>';
+  try { await fn(); } catch (e) { out.innerHTML = `<p class="err">${esc(e.message)}</p>`; }
+  btn.disabled = false; loadUsage();
+}
+
+function report(out, j, tag) {
+  out.innerHTML = `<p class="meta">Длительность ${j.duration} с · реплик: ${j.cues} · символов: ${j.characters}</p>
+    <${tag} controls src="${j.url}"></${tag}><p><a href="${j.url}" download>Скачать</a></p>` +
+    j.warnings.map((w) => `<p class="warn">⚠ ${esc(w)}</p>`).join("");
+}
+
+function form(extra) {
+  const fd = new FormData();
+  Object.entries({ ...opts(), ...extra }).forEach(([k, v]) => fd.append(k, v));
+  return fd;
+}
+
+$("go-text").onclick = () => run($("go-text"), $("out-text"), async () => {
+  const r = await fetch("/api/tts", { method: "POST", headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ...opts(), text: $("text").value }) });
+  if (!r.ok) throw new Error(await errText(r));
+  const url = URL.createObjectURL(await r.blob());
+  $("out-text").innerHTML = `<audio controls autoplay src="${url}"></audio><p><a href="${url}" download="voice.mp3">Скачать</a></p>`;
+});
+
+$("go-srt").onclick = () => run($("go-srt"), $("out-srt"), async () => {
+  if (!$("srt-file").files[0]) throw new Error("Выберите файл .srt");
+  const r = await fetch("/api/dub/srt", { method: "POST",
+    body: form({ subtitles: $("srt-file").files[0], format: $("srt-format").value }) });
+  if (!r.ok) throw new Error(await errText(r));
+  report($("out-srt"), await r.json(), "audio");
+});
+
+$("go-video").onclick = () => run($("go-video"), $("out-video"), async () => {
+  if (!$("vid-file").files[0] || !$("vid-srt").files[0]) throw new Error("Выберите видео и субтитры");
+  const r = await fetch("/api/dub/video", { method: "POST", body: form({
+    video: $("vid-file").files[0], subtitles: $("vid-srt").files[0],
+    mode: $("vid-mode").value, original_volume: $("vid-bg").value }) });
+  if (!r.ok) throw new Error(await errText(r));
+  report($("out-video"), await r.json(), "video");
+});
+
+$("go-clone").onclick = () => run($("go-clone"), $("out-clone"), async () => {
+  const fd = new FormData();
+  fd.append("name", $("clone-name").value || "Мой голос");
+  [...$("clone-files").files].forEach((f) => fd.append("samples", f));
+  if (!$("clone-files").files.length) throw new Error("Добавьте хотя бы один образец");
+  const r = await fetch("/api/voices/clone", { method: "POST", body: fd });
+  if (!r.ok) throw new Error(await errText(r));
+  const v = await r.json();
+  $("out-clone").innerHTML = `<p>Голос «${esc(v.name)}» создан (id: ${esc(v.voice_id)}).</p>`;
+  await loadVoices(v.voice_id);
+});
+
+async function loadVoices(select) {
+  const r = await fetch("/api/voices");
+  if (!r.ok) { $("voice").innerHTML = `<option value="">Ошибка: ${esc(await errText(r))}</option>`; return; }
+  const list = await r.json();
+  $("voice").innerHTML = list.map((v) =>
+    `<option value="${esc(v.voice_id)}">${esc(v.name)}${v.category === "cloned" ? " ★" : ""}</option>`).join("");
+  if (select) $("voice").value = select;
+}
+
+async function loadUsage() {
+  try {
+    const u = await (await fetch("/api/usage")).json();
+    if (u.tier) $("usage").textContent = u.characters_limit
+      ? `Тариф: ${u.tier} · использовано ${u.characters_used} из ${u.characters_limit} символов`
+      : `Тариф: ${u.tier}`;
+  } catch {}
+}
+loadVoices(); loadUsage();
+</script>
+</body>
+</html>

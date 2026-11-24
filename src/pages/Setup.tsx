@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { Connection } from '../backend'
+import { Logo } from '../components/Logo'
 import { Field } from '../components/ui'
 
 export default function Setup({ onDone }: { onDone: (c: Connection) => void }) {
@@ -19,8 +20,7 @@ export default function Setup({ onDone }: { onDone: (c: Connection) => void }) {
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="logo">🏪</div>
-        <h1>Учёт магазина</h1>
+        <div className="logo-center"><Logo size={64} tagline /></div>
         <p className="muted">Товары, продажи, приход, ревизия и касса — прямо с телефона.</p>
 
         {!cloud ? (

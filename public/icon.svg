@@ -1,11 +1,29 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="112" fill="#1e5eff"/>
-  <path d="M120 200h272l-24 200H144z" fill="#fff"/>
-  <path d="M190 200v-30a66 66 0 0 1 132 0v30" fill="none" stroke="#fff" stroke-width="28" stroke-linecap="round"/>
-  <g fill="#1e5eff">
-    <rect x="176" y="250" width="12" height="110"/><rect x="198" y="250" width="6" height="110"/>
-    <rect x="214" y="250" width="16" height="110"/><rect x="240" y="250" width="6" height="110"/>
-    <rect x="256" y="250" width="12" height="110"/><rect x="278" y="250" width="6" height="110"/>
-    <rect x="294" y="250" width="16" height="110"/><rect x="320" y="250" width="8" height="110"/>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#14123A"/>
+      <stop offset="1" stop-color="#5B3DF5"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-400%" width="140%" height="900%">
+      <feGaussianBlur stdDeviation="7"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="116" fill="url(#bg)"/>
+  <g fill="none" stroke="#fff" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M112 176v-40a24 24 0 0 1 24-24h40"/>
+    <path d="M336 112h40a24 24 0 0 1 24 24v40"/>
+    <path d="M400 336v40a24 24 0 0 1-24 24h-40"/>
+    <path d="M176 400h-40a24 24 0 0 1-24-24v-40"/>
   </g>
+  <g fill="#fff">
+    <rect x="166" y="178" width="16" height="156" rx="3"/>
+    <rect x="194" y="178" width="8" height="156" rx="3"/>
+    <rect x="214" y="178" width="22" height="156" rx="3"/>
+    <rect x="248" y="178" width="8" height="156" rx="3"/>
+    <rect x="268" y="178" width="16" height="156" rx="3"/>
+    <rect x="296" y="178" width="8" height="156" rx="3"/>
+    <rect x="316" y="178" width="22" height="156" rx="3"/>
+  </g>
+  <rect x="134" y="250" width="244" height="12" rx="6" fill="#19E3B1" filter="url(#glow)"/>
+  <rect x="134" y="250" width="244" height="12" rx="6" fill="#19E3B1"/>
 </svg>

@@ -1,4 +1,4 @@
-name: Публикация приложения (GitHub Pages)
+name: Публикация Store Scan (GitHub Pages)
 
 on:
   push:

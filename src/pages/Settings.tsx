@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { builtInCloud, type Connection } from '../backend'
+import { Logo } from '../components/Logo'
 import { Field, Page, useConfirm } from '../components/ui'
 import { exportXlsx, saveBlob } from '../lib/export'
 import { dateTime, errorText, parseNum, round2 } from '../lib/format'
@@ -51,7 +52,7 @@ export default function Settings({ onChangeConnection }: { onChangeConnection: (
           }}>Сменить базу данных</button>
         </section>
       )}
-      <div className="muted small center pad">Учёт магазина · версия 1.0</div>
+      <div className="about"><Logo size={40} /><div className="muted small">Версия 1.1 · Сканируй. Продавай. Считай.</div></div>
       {confirm.node}
     </Page>
   )

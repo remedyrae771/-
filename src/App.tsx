@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { createBackend, loadConnection, saveConnection, type Connection } from './backend'
+import { LogoMark } from './components/Logo'
 import { StoreProvider, ToastProvider } from './lib/store'
 import { canManage, isStaff, type Profile } from './lib/types'
 import Audit from './pages/Audit'
@@ -50,7 +51,7 @@ function Root() {
   }
 
   if (!conn || !backend) return <Setup onDone={changeConnection} />
-  if (profile === undefined) return <div className="splash"><div className="spinner" />Загрузка…</div>
+  if (profile === undefined) return <div className="splash"><LogoMark size={72} /><div className="spinner" /></div>
   if (!profile) return <Login backend={backend} onDone={refreshProfile} onChangeConnection={() => changeConnection(null)} />
   if (!isStaff(profile.role)) {
     return <Waiting profile={profile} onRefresh={refreshProfile} onSignOut={async () => { await backend.signOut(); refreshProfile() }} />

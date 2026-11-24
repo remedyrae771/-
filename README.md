@@ -1,6 +1,11 @@
-# Учёт магазина — мобильное приложение
+<p align="center"><img src="public/icon-192.png" width="96" alt="Store Scan"></p>
 
-Приложение для учёта товаров, продаж, прихода, ревизий, списаний, возвратов и кассы магазина.
+# Store Scan
+
+**Сканируй. Продавай. Считай.** — мобильное приложение для учёта магазина.
+Фирменный стиль: [docs/brand/BRAND.md](docs/brand/BRAND.md).
+
+Store Scan — приложение для учёта товаров, продаж, прихода, ревизий, списаний, возвратов и кассы магазина.
 Работает на **iPhone и Android** прямо в браузере и устанавливается на главный экран как обычное
 приложение (PWA). Штрихкоды сканируются **камерой телефона** — отдельный сканер не нужен
 (но USB/Bluetooth-сканер, если он есть, тоже работает).
@@ -8,7 +13,7 @@
 ## Скриншоты
 
 <p>
-<img src="docs/screenshots/02-home.png" width="200"> <img src="docs/screenshots/07-scanner.png" width="200">
+<img src="docs/screenshots/01-setup.png" width="200"> <img src="docs/screenshots/02-home.png" width="200"> <img src="docs/screenshots/07-scanner.png" width="200">
 <img src="docs/screenshots/09-payment.png" width="200"> <img src="docs/screenshots/14-audit-report.png" width="200">
 </p>
 

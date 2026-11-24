@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { LogoMark } from '../components/Logo'
 import { money, plural, startOfDay } from '../lib/format'
 import { summarize, type Summary } from '../lib/reports'
 import { useStore } from '../lib/store'
@@ -34,7 +35,8 @@ export default function Home() {
   return (
     <div className="page home">
       <header className="home-head">
-        <div>
+        <div className="home-brand">
+          <div className="home-app"><LogoMark size={22} /> Store Scan</div>
           <div className="home-shop">{shopName}</div>
           <div className="home-user">{profile.name === ROLE_LABEL[profile.role] ? profile.name : `${profile.name} · ${ROLE_LABEL[profile.role]}`}{backend.mode === 'local' ? ' · только этот телефон' : ''}</div>
         </div>

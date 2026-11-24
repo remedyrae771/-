@@ -106,7 +106,7 @@ export function docToHtml(doc: ReportDoc): string {
       typeof c === 'number' ? `<td class="n">${fmtNum.format(c)}</td>` : `<td>${esc(String(c ?? ''))}</td>`).join('') + '</tr>').join('') + '</tbody>'
     h += '</table>'
   }
-  h += `<div class="printed">Сформировано: ${esc(dateTime(new Date().toISOString()))}</div>`
+  h += `<div class="printed">Сформировано в Store Scan · ${esc(dateTime(new Date().toISOString()))}</div>`
   return h
 }
 

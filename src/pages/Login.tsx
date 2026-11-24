@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { builtInCloud, type Backend } from '../backend'
+import { Logo } from '../components/Logo'
 import { Field } from '../components/ui'
 import { errorText } from '../lib/format'
 import { ROLE_LABEL, type Profile } from '../lib/types'
@@ -36,7 +37,7 @@ export default function Login({ backend, onDone, onChangeConnection }: {
   return (
     <div className="auth-page">
       <form className="auth-card" onSubmit={submit}>
-        <div className="logo">🏪</div>
+        <div className="logo-center"><Logo size={56} /></div>
         <h1>{mode === 'in' ? 'Вход' : 'Регистрация'}</h1>
         {mode === 'up' && (
           <>
@@ -67,7 +68,7 @@ export function Waiting({ profile, onRefresh, onSignOut }: { profile: Profile; o
   return (
     <div className="auth-page">
       <div className="auth-card">
-        <div className="logo">⏳</div>
+        <div className="logo-center"><Logo size={48} /></div>
         <h1>{profile.role === 'blocked' ? 'Доступ закрыт' : 'Ожидание подтверждения'}</h1>
         <p>{profile.name} ({profile.email})</p>
         <p className="muted">

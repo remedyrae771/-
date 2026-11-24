@@ -374,6 +374,17 @@ drop trigger if exists profiles_keep_owner on public.profiles;
 create trigger profiles_keep_owner before update on public.profiles
   for each row execute function public.keep_one_owner();
 
+-- Доступ приложения к таблицам (работает и при выключенной галочке
+-- «Grant API access to new tables automatically»). Что именно можно делать —
+-- ограничивают правила RLS выше.
+grant usage on schema public to anon, authenticated;
+grant select, insert, update, delete on all tables in schema public to authenticated;
+grant usage, select on all sequences in schema public to authenticated;
+grant execute on function public.my_role() to authenticated;
+grant execute on function public.is_staff() to authenticated;
+grant execute on function public.is_manager() to authenticated;
+grant execute on function public.is_owner() to authenticated;
+
 grant execute on function public.post_operation(jsonb) to authenticated;
 grant execute on function public.cancel_sale(uuid, text) to authenticated;
 revoke execute on function public.post_operation(jsonb) from public, anon;

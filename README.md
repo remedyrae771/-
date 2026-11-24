@@ -13,8 +13,8 @@ Store Scan — приложение для учёта товаров, прода
 ## Скриншоты
 
 <p>
-<img src="docs/screenshots/01-setup.png" width="200"> <img src="docs/screenshots/02-home.png" width="200"> <img src="docs/screenshots/07-scanner.png" width="200">
-<img src="docs/screenshots/09-payment.png" width="200"> <img src="docs/screenshots/14-audit-report.png" width="200">
+<img src="docs/screenshots/home-full.png" width="200"> <img src="docs/screenshots/07-scanner.png" width="200">
+<img src="docs/screenshots/success.png" width="200"> <img src="docs/screenshots/report.png" width="200">
 </p>
 
 ## Что умеет

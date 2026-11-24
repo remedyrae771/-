@@ -1,3 +1,4 @@
+import { createPortal } from 'react-dom'
 import { useEffect, useRef, useState } from 'react'
 import { beep, getDetector } from '../lib/scanner'
 
@@ -22,6 +23,7 @@ export default function Scanner({ title = 'Сканирование', continuous
   const [starting, setStarting] = useState(true)
   const [torch, setTorch] = useState<boolean | null>(null)
   const [feedback, setFeedback] = useState<ScanFeedback | null>(null)
+  const [flash, setFlash] = useState<{ ok: boolean; n: number } | null>(null)
   const [manual, setManual] = useState('')
   const last = useRef<{ code: string; t: number }>({ code: '', t: 0 })
   const busy = useRef(false)
@@ -38,6 +40,7 @@ export default function Scanner({ title = 'Сканирование', continuous
     try {
       const fb = await onDetectRef.current(code)
       beep(fb ? fb.ok : true)
+      setFlash({ ok: fb ? fb.ok : true, n: Date.now() })
       if (fb) setFeedback(fb)
       if (!continuous) {
         onCloseRef.current()
@@ -129,7 +132,7 @@ export default function Scanner({ title = 'Сканирование', continuous
     handle(code)
   }
 
-  return (
+  return createPortal(
     <div className="scanner">
       <div className="scanner-top">
         <button className="scanner-btn" onClick={onClose} aria-label="Закрыть">✕</button>
@@ -140,14 +143,22 @@ export default function Scanner({ title = 'Сканирование', continuous
       </div>
       <div className="scanner-view">
         <video ref={videoRef} playsInline muted autoPlay />
-        {!error && <div className="scanner-frame"><div className="scanner-line" /></div>}
+        {!error && (
+          <div key={flash?.n ?? 0} className={'scanner-frame' + (flash ? (flash.ok ? ' flash-ok' : ' flash-bad') : '')}>
+            <span className="corner tl" /><span className="corner tr" /><span className="corner bl" /><span className="corner br" />
+            <div className="scanner-line" />
+          </div>
+        )}
         {starting && !error && <div className="scanner-msg">Запуск камеры…</div>}
         {error && <div className="scanner-msg error">{error}</div>}
       </div>
       {feedback && (
-        <div className={'scanner-feedback ' + (feedback.ok ? 'ok' : 'bad')}>
+        <div key={flash?.n} className={'scanner-feedback ' + (feedback.ok ? 'ok' : 'bad')}>
+          <div className="fb-icon">{feedback.ok ? '✓' : '!'}</div>
+          <div>
           <div className="fb-title">{feedback.title}</div>
           {feedback.subtitle && <div className="fb-sub">{feedback.subtitle}</div>}
+          </div>
         </div>
       )}
       <form className="scanner-bottom" onSubmit={submitManual}>
@@ -160,6 +171,7 @@ export default function Scanner({ title = 'Сканирование', continuous
         <button type="submit" className="btn btn-primary">OK</button>
         {continuous && <button type="button" className="btn" onClick={onClose}>Готово</button>}
       </form>
-    </div>
+    </div>,
+    document.body,
   )
 }

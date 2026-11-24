@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import PaymentSplit, { paymentsValid } from '../components/PaymentSplit'
+import { Confetti, CountUp, SuccessCheck } from '../components/Lively'
 import ProductForm from '../components/ProductForm'
 import { opDoc } from '../components/OperationView'
 import { Empty, Modal, NumInput, Page, ProductFinder, QtyStepper, StockBadge } from '../components/ui'
@@ -97,7 +98,7 @@ export default function Sale() {
         <div className="sale-footer">
           <div>
             <div className="muted small">{lines.length} поз. · {num(count)} ед.</div>
-            <div className="sale-total">{money(total)}</div>
+            <div key={total} className="sale-total bump">{money(total)}</div>
           </div>
           <button className="btn btn-primary btn-lg" disabled={!lines.length} onClick={openPay}>Оплата →</button>
         </div>
@@ -160,8 +161,9 @@ export default function Sale() {
           </>
         }>
           <div className="success">
-            <div className="success-icon">✓</div>
-            <div className="success-sum">{money(done.total)}</div>
+            <Confetti />
+            <SuccessCheck />
+            <div className="success-sum"><CountUp value={done.total} /></div>
             <div className="muted">Продажа №{done.number}</div>
             <div className="kv">
               {done.payments.map((p, i) => (

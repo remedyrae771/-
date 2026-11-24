@@ -1,8 +1,10 @@
 import { useEffect, useState, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { useNavigate } from 'react-router-dom'
 import { money, num, parseNum } from '../lib/format'
 import { useStore } from '../lib/store'
 import type { Product } from '../lib/types'
+import { Illustration, type ArtKind } from './Lively'
 import Scanner, { type ScanFeedback } from './Scanner'
 
 export function Page({ title, back = '/', actions, children, footer }: {
@@ -36,7 +38,7 @@ export function Modal({ title, onClose, children, footer, wide }: {
       document.body.classList.remove('no-scroll')
     }
   }, [onClose])
-  return (
+  return createPortal(
     <div className="modal-back" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div className={'modal' + (wide ? ' wide' : '')} role="dialog" aria-label={title}>
         <div className="modal-head">
@@ -46,7 +48,8 @@ export function Modal({ title, onClose, children, footer, wide }: {
         <div className="modal-body">{children}</div>
         {footer && <div className="modal-foot">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
 
@@ -99,10 +102,14 @@ export function Field({ label, children, hint }: { label: string; children: Reac
   )
 }
 
+const ART_BY_ICON: Record<string, ArtKind> = {
+  '🛒': 'cart', '📦': 'box', '📋': 'clipboard', '📊': 'chart', '🕘': 'clock', '📚': 'search', '↩️': 'returns', '🗑️': 'returns', '🗂': 'returns',
+}
+
 export function Empty({ icon = '📭', text, children }: { icon?: string; text: string; children?: ReactNode }) {
   return (
     <div className="empty">
-      <div className="empty-icon">{icon}</div>
+      <Illustration kind={ART_BY_ICON[icon] ?? 'search'} />
       <div>{text}</div>
       {children}
     </div>

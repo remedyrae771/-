@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { CountUp, MiniBars, PaySplitBar } from '../components/Lively'
 import OperationView from '../components/OperationView'
 import { Empty, Page, Tabs } from '../components/ui'
 import { exportXlsx, printDoc, type ReportDoc } from '../lib/export'
@@ -91,7 +92,7 @@ export default function Reports() {
 
       {!allOps ? <div className="muted pad">Загрузка…</div> : (
         <>
-          {view === 'summary' && <SummaryView s={s} manager={manager} />}
+          {view === 'summary' && <SummaryView s={s} manager={manager} days={days} />}
 
           {view === 'days' && (days.length === 0 ? <Empty icon="📊" text="Нет продаж за период" /> : (
             <div className="table-wrap">
@@ -158,26 +159,33 @@ export function OpRow({ o, onClick }: { o: Operation; onClick: () => void }) {
   const sign = o.type === 'return' ? '−' : ''
   return (
     <button className={'list-row' + (o.status === 'cancelled' ? ' cancelled' : '')} onClick={onClick}>
+      <span className={'op-bubble op-' + o.type}>{OP_ICON[o.type]}</span>
       <div className="row-main">
-        <div className="row-title">{OP_ICON[o.type]} {OP_LABEL[o.type]} №{o.number}{o.status === 'cancelled' ? ' (отменена)' : ''}</div>
+        <div className="row-title">{OP_LABEL[o.type]} №{o.number}{o.status === 'cancelled' ? ' (отменена)' : ''}</div>
         <div className="row-sub">
           {dateTime(o.created_at)}{o.user_name ? ' · ' + o.user_name : ''}
           {o.payments.length > 0 && ' · ' + o.payments.map((p) => (p.method === 'bank' ? p.bank_name : PAY_LABEL[p.method])).join(' + ')}
         </div>
       </div>
-      <div className="row-right"><div className="row-price">{sign}{money(o.total)}</div></div>
+      <div className="row-right"><div className={'row-price' + (o.type === 'sale' && o.status === 'done' ? ' green-text' : o.type === 'return' ? ' red-text' : '')}>{o.type === 'sale' && o.status === 'done' ? '+' : sign}{money(o.total)}</div></div>
     </button>
   )
 }
 
-function SummaryView({ s, manager }: { s: Summary; manager: boolean }) {
+function SummaryView({ s, manager, days }: { s: Summary; manager: boolean; days: ReturnType<typeof byDay> }) {
   const banks = Object.entries(s.net.banks).filter(([, v]) => v !== 0)
+  const bars = [...days].reverse().slice(-31).map((d) => {
+    const dt = new Date(d.day + 'T00:00:00')
+    return { label: String(dt.getDate()), value: d.revenue, hint: dt.toLocaleDateString('ru-RU', { weekday: 'short', day: 'numeric', month: 'long' }) }
+  })
   return (
     <div className="report">
       <div className="report-hero">
-        <div className="muted">Выручка (продажи − возвраты)</div>
-        <div className="hero-sum">{money(s.revenue)}</div>
-        <div className="muted small">{s.salesCount} {plural(s.salesCount, ['продажа', 'продажи', 'продаж'])} · средний чек {money(s.avgCheck)} · продано {num(s.itemsSold)} ед.</div>
+        <div className="glow g1" />
+        <div className="hero-label">Выручка (продажи − возвраты)</div>
+        <div className="hero-sum"><CountUp value={s.revenue} /></div>
+        <PaySplitBar cash={s.net.cash} kaspi={s.net.kaspi} bank={s.net.bank} dark />
+        <div className="hero-meta">{s.salesCount} {plural(s.salesCount, ['продажа', 'продажи', 'продаж'])} · средний чек {money(s.avgCheck)} · продано {num(s.itemsSold)} ед.</div>
       </div>
 
       <div className="pay-cards">
@@ -185,6 +193,13 @@ function SummaryView({ s, manager }: { s: Summary; manager: boolean }) {
         <div className="pay-card kaspi"><span>🟥 Kaspi</span><b>{money(s.net.kaspi)}</b></div>
         <div className="pay-card bank"><span>🏦 Другие банки</span><b>{money(s.net.bank)}</b></div>
       </div>
+      {bars.length > 1 && (
+        <section className="card">
+          <div className="card-head"><span>Выручка по дням</span><b>{money(s.revenue)}</b></div>
+          <MiniBars data={bars} />
+        </section>
+      )}
+
       {banks.length > 0 && (
         <div className="kv">
           {banks.map(([k, v]) => <div key={k}><span>🏦 {k}</span><b>{money(v)}</b></div>)}

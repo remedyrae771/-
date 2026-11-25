@@ -32,7 +32,9 @@ export function saveConnection(c: Connection | null) {
 }
 
 export function createBackend(c: Connection): Backend {
-  return c.mode === 'cloud' ? new SupabaseBackend(c.url, c.key) : new LocalBackend()
+  return c.mode === 'cloud'
+    ? new SupabaseBackend(c.url.trim().replace(/\/+$/, '').replace(/\/(rest|auth)\/v1$/, ''), c.key.trim())
+    : new LocalBackend()
 }
 
 export type { Backend }

@@ -10,7 +10,7 @@ export default function Setup({ onDone }: { onDone: (c: Connection) => void }) {
   const [err, setErr] = useState('')
 
   const connect = () => {
-    let u = url.trim().replace(/\/+$/, '')
+    let u = url.trim().replace(/\/+$/, '').replace(/\/(rest|auth)\/v1$/, '')
     if (u && !/^https?:\/\//.test(u)) u = 'https://' + u
     if (!/^https:\/\/.+/.test(u)) return setErr('Укажите адрес проекта, например https://abcd.supabase.co')
     if (key.trim().length < 20) return setErr('Укажите публичный ключ (anon / publishable key)')
